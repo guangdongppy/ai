@@ -6,6 +6,11 @@ spring:
     url: jdbc:postgresql://39.108.68.113:15432/ai-rag-knowledge
     username: postgres
     password: postgres
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      password: 123456
   ai:
     openai:
       api-key: sk-5f7eee99abd7463d9a821e3dfa6b36be
