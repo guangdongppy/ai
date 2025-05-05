@@ -32,3 +32,6 @@ build/
 ### VS Code ###
 .vscode/
 /data/
+/app/src/main/resources/data/
+/app/src/test/java/org/yiyou/
+/data/

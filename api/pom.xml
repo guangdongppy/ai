@@ -7,14 +7,31 @@
         <artifactId>ai</artifactId>
         <version>1.0</version>
     </parent>
-
-    <artifactId>app</artifactId>
-
-
+    <groupId>org.yiyou</groupId>
+    <artifactId>api</artifactId>
+    <version>1.0</version>
+    <name>api</name>
+    <description>api</description>
+    <url/>
+    <licenses>
+        <license/>
+    </licenses>
+    <developers>
+        <developer/>
+    </developers>
+    <scm>
+        <connection/>
+        <developerConnection/>
+        <tag/>
+        <url/>
+    </scm>
+    <properties>
+        <java.version>17</java.version>
+    </properties>
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
+            <artifactId>spring-boot-starter</artifactId>
         </dependency>
 
         <dependency>
@@ -24,26 +41,23 @@
         </dependency>
 
         <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <scope>test</scope>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-model-openai</artifactId>
+            <version>${spring-ai.version}</version>
         </dependency>
 
         <dependency>
-            <groupId>com.alibaba.fastjson2</groupId>
-            <artifactId>fastjson2</artifactId>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-bom</artifactId>
+            <version>${spring-ai.version}</version>
+            <type>pom</type>
+            <scope>import</scope>
         </dependency>
 
         <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
         </dependency>
-
-        <dependency>
-            <groupId>org.yiyou</groupId>
-            <artifactId>trigger</artifactId>
-        </dependency>
-
     </dependencies>
 
     <build>
