@@ -75,7 +75,7 @@
         addMessage(message, true);
         addMessage('<span class="animate-pulse">▍</span>');
 
-        const apiUrl = `http://localhost:8080/ai/generateStream?model=deepseek-r1&message=${encodeURIComponent(message)}&conversationId=${encodeURIComponent(currentConversationId)}`;
+        const apiUrl = `http://localhost:8080/ai/chat/generateStream?model=deepseek-r1&message=${encodeURIComponent(message)}&conversationId=${encodeURIComponent(currentConversationId)}`;
 
         const eventSource = new EventSource(apiUrl);
         let buffer = '';
@@ -141,7 +141,7 @@
 
     async function startNewConversation() {
         try {
-            const response = await fetch('http://localhost:8080/ai/startConversation');
+            const response = await fetch('http://localhost:8080/ai/chat/startConversation');
             currentConversationId = await response.text();
             localStorage.setItem('conversationId', currentConversationId); // ✅ 更新 localStorage
             document.getElementById('messageContainer').innerHTML = '';

@@ -50,7 +50,7 @@ public class ChatController implements IAiService {
 
     @Override
     @GetMapping("/generateStream")
-    public Flux<ChatResponse> generateStream(String model, @RequestParam(value = "message", defaultValue = "Tell me a joke") String message) {
+    public Flux<ChatResponse> generateStream(String model, @RequestParam(value = "message", defaultValue = "Tell me a joke") String message, @RequestParam String conversationId) {
 
         List<Term> termList = HanLP.segment(message);
         List<Object> messageList = termList.stream()
