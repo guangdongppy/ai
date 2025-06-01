@@ -5,26 +5,33 @@ import com.hankcs.hanlp.seg.common.Term;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvisor;
-import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvisor;
+import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
+import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
+import org.springframework.ai.chat.client.advisor.api.Advisor;
 import org.springframework.ai.chat.memory.ChatMemory;
-import org.springframework.ai.chat.memory.jdbc.JdbcChatMemoryRepository;
-import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.chat.memory.repository.jdbc.JdbcChatMemoryRepository;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.PromptTemplate;
-import org.springframework.ai.vectorstore.SearchRequest;
+import org.springframework.ai.rag.advisor.RetrievalAugmentationAdvisor;
+import org.springframework.ai.rag.generation.augmentation.ContextualQueryAugmenter;
+import org.springframework.ai.rag.preretrieval.query.transformation.RewriteQueryTransformer;
+import org.springframework.ai.rag.preretrieval.query.transformation.TranslationQueryTransformer;
+import org.springframework.ai.rag.retrieval.join.ConcatenationDocumentJoiner;
+import org.springframework.ai.rag.retrieval.search.VectorStoreDocumentRetriever;
+import org.springframework.ai.template.st.StTemplateRenderer;
 import org.springframework.ai.vectorstore.VectorStore;
-import org.springframework.ai.vectorstore.filter.Filter;
 import org.springframework.ai.document.Document;
+import org.springframework.ai.vectorstore.filter.Filter;
 import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.yiyou.api.IAiService;
+import org.yiyou.trigger.advisor.TimeAdvisor;
 import reactor.core.publisher.Flux;
 
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
@@ -43,12 +50,13 @@ public class ChatClientController implements IAiService {
     private PromptTemplate promptTemplate;
     @Autowired
     private ChatMemory chatMemory;
+    @Autowired
+    ChatClient.Builder chatClientBuilder;
 
 
     @GetMapping("/startConversation")
     public String startNewConversation() {
-        String conversationId = UUID.randomUUID().toString();
-        return conversationId;
+        return UUID.randomUUID().toString();
     }
 
     @Override
@@ -70,40 +78,83 @@ public class ChatClientController implements IAiService {
         FilterExpressionBuilder filterExpression = new FilterExpressionBuilder();
         Filter.Expression expression = filterExpression.in("knowledge", messageList).build();
 
-        SearchRequest request = SearchRequest
-                .builder()
-                .query(message)
-                .topK(5)
-                .similarityThreshold(0.5d) // 匹配度
-                .filterExpression(expression)// 这里是过滤表达式
+        Advisor retrievalAugmentationAdvisor = RetrievalAugmentationAdvisor.builder()
+                .queryTransformers(
+                        // 重写查询
+                        RewriteQueryTransformer.builder()
+                                .chatClientBuilder(chatClientBuilder)
+                                .build(),
+                        // 翻译查询
+                        TranslationQueryTransformer.builder()
+                                .chatClientBuilder(chatClientBuilder)
+                                .targetLanguage("chinese")
+                                .build()
+                )
+                // 查询扩展
+/*                .queryExpander(MultiQueryExpander.builder()
+                        .chatClientBuilder(chatClientBuilder)
+                        .numberOfQueries(1)
+                        .includeOriginal(false)
+                        .build())*/
+                // 文档检索
+                .documentRetriever(VectorStoreDocumentRetriever.builder()
+                        .similarityThreshold(0.4)
+                        .topK(20)
+                        .vectorStore(vectorStore)
+                        // 这里是过滤表达式
+                        .filterExpression(expression)
+                        .build())
+                // 文档连接
+                .documentJoiner(new ConcatenationDocumentJoiner())
+                // 去重
+                .documentPostProcessors(
+                        (query, documents) ->
+                                new ArrayList<>(documents.stream()
+                                        .map(document -> new Document(document.getText().replaceAll("[\\s\\n\\r]+", " ").trim(), document.getMetadata()))
+                                        .collect(
+                                                Collectors.toMap(
+                                                        Document::getText, // 使用文本作为 key
+                                                        doc -> doc, // 使用 Document 作为 value
+                                                        (existing, replacement) -> existing // 如果重复，保留第一个
+                                                )
+                                        )
+                                        .values())
+                )
+                // 查询增强
+                .queryAugmenter(ContextualQueryAugmenter.builder()
+                        // 允许无上下文
+                        .allowEmptyContext(true)
+                        .promptTemplate(promptTemplate)
+                        .build())
+                .build();
+        String string = chatMemory.get(conversationId).toString();
+        PromptTemplate promptTemplate1 = PromptTemplate.builder()
+                .renderer(StTemplateRenderer.builder()
+                        .startDelimiterToken('<')
+                        .endDelimiterToken('>')
+                        .build())
+                .template("""
+                                    "<instructions>
+                                    使用LONG_TERM_MEMORY部分的长期对话记忆来提供准确的答案。
+                                    ---------------------
+                                    LONG_TERM_MEMORY:
+                                    <long_term_memory>
+                                    ---------------------"    
+                        """)
                 .build();
 
-        QuestionAnswerAdvisor questionAnswerAdvisor = QuestionAnswerAdvisor.builder(vectorStore)
-                .promptTemplate(promptTemplate)
-                .searchRequest(SearchRequest.builder().similarityThreshold(0.8d).topK(6).build())
-                .build();
-
-        List<Document> documents = vectorStore.similaritySearch(request);
-        String documentsCollectors = documents.stream()
-                .map(Document::getText)
-                .map(String::trim)
-                .distinct()
-                .collect(Collectors.joining());
-        // 2. 构建 RAG 消息
-        /*Message ragMessage = new SystemPromptTemplate(MyPrompt.SYSTEM_PROMPT.getValue())
-                .createMessage(Map.of("documents", documentsCollectors));
-        SystemMessage systemMessage = new SystemMessage(ragMessage.getText());*/
-
-        // 3. 加载历史对话
-        UserMessage userMessage = new UserMessage(message);
-/*        List<Message> history = chatMemory.get(conversationId); // 通过 ID 获取历史
-        //history.add(systemMessage);
-        history.add(userMessage); // 添加当前用户输入*/
-
-        // 4. 调用模型并流式返回
         return chatClient.prompt()
                 .user(message)
-                .advisors(a -> a.param(AbstractChatMemoryAdvisor.CHAT_MEMORY_CONVERSATION_ID_KEY, conversationId))
+                .advisors(
+                        SimpleLoggerAdvisor.builder().build(),
+                        TimeAdvisor.builder().build(),
+                        MessageChatMemoryAdvisor.builder(chatMemory).build(),
+                        //VectorStoreChatMemoryAdvisor.builder(vectorStore).systemPromptTemplate(promptTemplate1).build(),
+                        retrievalAugmentationAdvisor
+                )
+                .advisors(a -> a.params(Map.of(ChatMemory.CONVERSATION_ID, conversationId,
+                        "time", LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy年MM月dd日 HH时mm分ss秒"))
+                )))
                 .stream()
                 .chatResponse();
 

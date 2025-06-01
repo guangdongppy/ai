@@ -1,10 +1,9 @@
 package org.yiyou.config;
 
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
-import org.springframework.ai.chat.memory.jdbc.JdbcChatMemoryRepository;
+import org.springframework.ai.chat.memory.repository.jdbc.JdbcChatMemoryRepository;
 import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.ai.template.st.StTemplateRenderer;
 import org.springframework.context.annotation.Bean;
@@ -41,44 +40,56 @@ public class ChatClientConfig {
      * @return
      */
     @Bean
-    public ChatClient chatClient(ChatClient.Builder chatClientBuilder, JdbcChatMemoryRepository jdbcChatMemoryRepository) {
-        ChatMemory chatMemory = MessageWindowChatMemory.builder()
-                .chatMemoryRepository(jdbcChatMemoryRepository)
-                .maxMessages(100) // 默认200
-                .build();
-        return chatClientBuilder.defaultSystem("Take a deep breath and work on this step by step. This sentence is a system prompt.")
-                .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory).build())
+    public ChatClient chatClient(ChatClient.Builder chatClientBuilder, ChatMemory chatMemory) {
+
+        return chatClientBuilder
+                .defaultSystem("现在是北京时间{time}，你是一个人工智能，你的目的是帮助用户解答问题和提供信息，请你优先通过会话历史回答问题。")// ,你是一名虚构的动漫里小熊的智能客服，你的名字叫一二。请以友好、热情、可爱的方式回答用户问题。
+                //.defaultAdvisors(SimpleLoggerAdvisor.builder().build(), MessageChatMemoryAdvisor.builder(chatMemory).build())
                 .build();
     }
 
-/*    @Bean
+    @Bean
     public ChatMemory chatMemory(JdbcChatMemoryRepository jdbcChatMemoryRepository){
         return MessageWindowChatMemory.builder()
                 .chatMemoryRepository(jdbcChatMemoryRepository)
-                .maxMessages(20)
+                .maxMessages(200)
                 .build();
-    }*/
+    }
 
     @Bean
     public PromptTemplate promptTemplate() {
         return PromptTemplate.builder()
                 .renderer(StTemplateRenderer.builder()
                         .startDelimiterToken('<')
-                        .endDelimiterToken('>').build()
-                ).template("""
-            Context information is below.
+                        .endDelimiterToken('>')
+                        .build())
+/*                .template("""
+            上下文信息如下。
 
 			---------------------
 			<question_answer_context>
 			---------------------
 
-			Given the context information and no prior knowledge, answer the query.
+			根据上下文信息且没有先验知识，回答查询。
 
-			Follow these rules:
+			遵循以下规则：
 
-			1. If the answer is not in the context, just say that you don't know.
-			2. Avoid statements like "Based on the context..." or "The provided information...".
-            """).build();
+			1. 如果答案不在上下文中，只需说你不知道。
+			2. 避免使用"根据上下文..."或"提供的信息..."等语句。
+            """)*/
+                .template("""
+                        上下文信息在下面。         
+                        ---------------------
+                        <context>
+                        ---------------------       
+                        给定上下文信息和无先前知识，回答查询。       
+                        遵守这些规则：   
+                        1. 如果答案不在上下文中，就直接说你不知道。
+                        2. 避免使用“根据上下文…”或“根据你提供的信息…”这样的表述。   
+                        查询：<query>
+                        答案：           
+            """)
+                .build();
     }
 
 }

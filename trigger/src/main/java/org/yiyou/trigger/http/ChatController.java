@@ -5,11 +5,11 @@ import com.hankcs.hanlp.seg.common.Term;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
+import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.chat.prompt.SystemPromptTemplate;
 import org.springframework.ai.document.Document;
-import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.ai.vectorstore.filter.Filter;
@@ -31,14 +31,9 @@ import java.util.stream.Collectors;
 public class ChatController implements IAiService {
 
     @Autowired
-    private  OpenAiChatModel chatModel;
+    private ChatModel chatModel;
     @Autowired
     private VectorStore vectorStore;
-
-    @Autowired
-    public ChatController(OpenAiChatModel chatModel) {
-        this.chatModel = chatModel;
-    }
 
     @Override
     @GetMapping("/generate")
