@@ -12,6 +12,8 @@ import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.repository.jdbc.JdbcChatMemoryRepository;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.PromptTemplate;
+import org.springframework.ai.mcp.AsyncMcpToolCallbackProvider;
+import org.springframework.ai.mcp.SyncMcpToolCallbackProvider;
 import org.springframework.ai.rag.advisor.RetrievalAugmentationAdvisor;
 import org.springframework.ai.rag.generation.augmentation.ContextualQueryAugmenter;
 import org.springframework.ai.rag.preretrieval.query.transformation.RewriteQueryTransformer;
@@ -27,6 +29,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.yiyou.api.IAiService;
 import org.yiyou.trigger.advisor.TimeAdvisor;
+import org.yiyou.trigger.tools.DateTimeTools;
 import reactor.core.publisher.Flux;
 
 import java.time.LocalDateTime;
@@ -52,6 +55,10 @@ public class ChatClientController implements IAiService {
     private ChatMemory chatMemory;
     @Autowired
     ChatClient.Builder chatClientBuilder;
+    @Autowired
+    private AsyncMcpToolCallbackProvider toolCallbackProvider;
+    @Autowired
+    private DateTimeTools dateTimeTools;
 
 
     @GetMapping("/startConversation")
@@ -82,7 +89,7 @@ public class ChatClientController implements IAiService {
                 .queryTransformers(
                         // 重写查询
                         RewriteQueryTransformer.builder()
-                                .chatClientBuilder(chatClientBuilder)
+                                .chatClientBuilder(chatClient.mutate())
                                 .build(),
                         // 翻译查询
                         TranslationQueryTransformer.builder()
@@ -102,7 +109,7 @@ public class ChatClientController implements IAiService {
                         .topK(20)
                         .vectorStore(vectorStore)
                         // 这里是过滤表达式
-                        .filterExpression(expression)
+                        //.filterExpression(expression)
                         .build())
                 // 文档连接
                 .documentJoiner(new ConcatenationDocumentJoiner())
@@ -148,13 +155,15 @@ public class ChatClientController implements IAiService {
                 .advisors(
                         SimpleLoggerAdvisor.builder().build(),
                         TimeAdvisor.builder().build(),
-                        MessageChatMemoryAdvisor.builder(chatMemory).build(),
+                        MessageChatMemoryAdvisor.builder(chatMemory).build()
                         //VectorStoreChatMemoryAdvisor.builder(vectorStore).systemPromptTemplate(promptTemplate1).build(),
-                        retrievalAugmentationAdvisor
+                        //retrievalAugmentationAdvisor2
                 )
                 .advisors(a -> a.params(Map.of(ChatMemory.CONVERSATION_ID, conversationId,
                         "time", LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy年MM月dd日 HH时mm分ss秒"))
                 )))
+                //.tools(dateTimeTools)
+                .toolCallbacks(toolCallbackProvider.getToolCallbacks())
                 .stream()
                 .chatResponse();
 

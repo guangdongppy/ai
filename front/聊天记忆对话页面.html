@@ -126,7 +126,7 @@
     let currentConversationId = localStorage.getItem('conversationId');
 
     if (!currentConversationId) {
-        fetch('http://localhost:8080/ai/startConversation')
+        fetch('http://localhost:8080/ai/chat/startConversation')
             .then(res => res.text())
             .then(id => {
                 currentConversationId = id;

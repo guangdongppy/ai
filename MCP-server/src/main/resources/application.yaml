@@ -1,0 +1,17 @@
+# 使用 spring-ai-starter-mcp-server-webflux
+server:
+  port: 8081
+spring:
+  ai:
+    mcp:
+      server:
+        name: webflux-mcp-server
+        version: 1.0.0
+        type: ASYNC  # 推荐用于反应式应用程序
+        instructions: "此反应式服务器提供天气信息工具和资源"
+        sse-message-endpoint: /mcp/messages
+        capabilities:
+          tool: true
+          resource: true
+          prompt: true
+          completion: true

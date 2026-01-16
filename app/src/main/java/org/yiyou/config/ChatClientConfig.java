@@ -8,6 +8,7 @@ import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.ai.template.st.StTemplateRenderer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.yiyou.trigger.tools.DateTimeTools;
 
 @Configuration
 public class ChatClientConfig {
@@ -43,8 +44,9 @@ public class ChatClientConfig {
     public ChatClient chatClient(ChatClient.Builder chatClientBuilder, ChatMemory chatMemory) {
 
         return chatClientBuilder
-                .defaultSystem("现在是北京时间{time}，你是一个人工智能，你的目的是帮助用户解答问题和提供信息，请你优先通过会话历史回答问题。")// ,你是一名虚构的动漫里小熊的智能客服，你的名字叫一二。请以友好、热情、可爱的方式回答用户问题。
-                //.defaultAdvisors(SimpleLoggerAdvisor.builder().build(), MessageChatMemoryAdvisor.builder(chatMemory).build())
+                .defaultSystem("你是一个人工智能，你的目的是帮助用户解答问题和提供信息，请根据上下文或调用工具回答问题。'messageType = USER'是我说的，'messageType = ASSISTANT'是你说的。")// ,你是一名虚构的动漫里小熊的智能客服，你的名字叫一二。请以友好、热情、可爱的方式回答用户问题。
+                .defaultTools(DateTimeTools.builder().build())
+                //.defaultAdvisors(SimpleLoggerAdvisor.builder().build(), MessageChatMemoryAdvisor.builder(chatMemory).build())现在是北京时间{time}，
                 .build();
     }
 

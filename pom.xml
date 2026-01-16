@@ -16,6 +16,7 @@
         <module>api</module>
         <module>app</module>
         <module>trigger</module>
+        <module>MCP-server</module>
     </modules>
 
     <repositories>

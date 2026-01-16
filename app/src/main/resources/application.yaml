@@ -28,10 +28,10 @@ spring:
       api-key: ${ZHIPUAI_API_KEY}
       chat:
         options:
-          model: GLM-4-Flash-250414
+          model: GLM-4.5-Flash
       embedding:
         options:
-          model: Embedding-2
+          model: Embedding-3
     vectorstore:
       pgvector:
         index-type: HNSW
@@ -43,6 +43,29 @@ spring:
         repository:
           jdbc:
             initialize-schema: always # 初始化数据库
+    mcp:
+      client:
+        enabled: true # 启用 MCP
+        name: my-mcp-client # MCP 客户端实例的名称（用于兼容性检查）
+        version: 1.0.0 # MCP 客户端实例的版本
+        request-timeout: 30s # MCP 客户端请求的超时时间
+        type: ASYNC  # 	客户端类型（SYNC 或 ASYNC）。所有客户端必须是同步或异步的；不支持混合使用
+        root-directory: true # 根目录
+        toolcallback:
+          enabled: true
+        sse:
+          connections:
+            server1:
+              url: http://localhost:8081
+            amap-amap-sse:
+              url: https://mcp.amap.com?key=692e7bad38e4f0aad653d8c0e2f97ac7
+#            filesystem-mcp-server:
+#              url: https://server.smithery.ai/@cyanheads/filesystem-mcp-server/mcp?
+#              sse-endpoint: ?api_key=cceadd6d-1043-4b21-aac8-518e9d3faaad&profile=joyous-bird-QhvTPA
+#        stdio:
+#          servers-configuration: classpath:mcp-server-config.json
+
+
 logging:
   level:
     org:
